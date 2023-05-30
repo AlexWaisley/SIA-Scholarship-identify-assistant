@@ -1,0 +1,1 @@
+g++ -I/home/akure/projects/jsontry/hash-library-hash_library_v8 ./main.cpp /home/akure/projects/jsontry/hash-library-hash_library_v8/sha256.a -o ./main && ./main
