@@ -18,7 +18,7 @@ struct Subject
 
     void print()
     {
-        cout << id << ' ' << name << endl;
+        cout << "Subject id: " << id << ".\tSubject name: " << name << endl;
     }
 
     void save(ostream &file)

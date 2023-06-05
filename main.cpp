@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <termios.h>
+#include <unistd.h>
 #include <algorithm>
 #include "sha256.h"
 #include <vector>
@@ -11,13 +13,28 @@
 
 using namespace std;
 
+void enableEcho(bool enable) {
+    struct termios tty;
+    tcgetattr(STDIN_FILENO, &tty);
+
+    if (enable) {
+        tty.c_lflag |= ECHO;
+    } else {
+        tty.c_lflag &= ~ECHO;
+    }
+    tcsetattr(STDIN_FILENO, TCSANOW, &tty);
+}
+
 bool login(DataBase &db)
 {
     string login, password;
     cout << "Enter login: ";
     cin >> login;
+    enableEcho(false);
     cout << "Enter password: ";
     cin >> password;
+    cout << endl;
+    enableEcho(true);
 
     auto user = User::fromCredentials(login, password);
     if (db.findUser(user))
@@ -138,6 +155,7 @@ void createUser(Menu &currMenu, DataBase &db)
     }
 
     db.createUser(login, password, isadmin);
+    cout << "User created.\n";
     db.save();
 }
 void changeLogin(Menu &currMenu, DataBase &db)
@@ -145,8 +163,11 @@ void changeLogin(Menu &currMenu, DataBase &db)
     string login, passwd;
     cout << "Enter new login(without ','): ";
     cin >> login;
-    cout << "Enter your password: ";
+    enableEcho(false);
+    cout << "Enter password: ";
     cin >> passwd;
+    cout << endl;
+    enableEcho(true);
 
     SHA256 sha256;
 
@@ -170,13 +191,17 @@ void changeLogin(Menu &currMenu, DataBase &db)
 
     db.changeLogin(login);
     db.changePassword(passwd);
+    cout << "Login changed successfully\n";
     db.save();
 }
 void changePassword(Menu &currMenu, DataBase &db)
 {
     string oldpasswd, newpasswd;
+    enableEcho(false);
     cout << "Enter old password: ";
     cin >> oldpasswd;
+    cout << endl;
+    enableEcho(true);
 
     SHA256 sha256;
 
@@ -186,10 +211,14 @@ void changePassword(Menu &currMenu, DataBase &db)
         return;
     }
 
+    enableEcho(false);
     cout << "Enter new password: ";
     cin >> newpasswd;
+    cout << endl;
+    enableEcho(true);
 
     db.changePassword(newpasswd);
+    cout << "Password changed successfully\n";
 
     db.save();
 }
@@ -200,6 +229,7 @@ void removeUser(Menu &currMenu, DataBase &db)
     cout << "Enter user id: ";
     cin >> userid;
     db.removeUser(userid);
+    cout << "User removed successfully\n";
     db.save();
 }
 
@@ -281,7 +311,7 @@ void createStudent(Menu &currMenu, DataBase &db)
     }
 
     db.createStudent(name, surname);
-    currMenu = Menu::Main;
+    cout << "Student created successfully\n";
     db.save();
 }
 void changeStudentName(Menu &currMenu, DataBase &db)
@@ -307,6 +337,7 @@ void changeStudentName(Menu &currMenu, DataBase &db)
     }
 
     db.changeStudentName(id, name);
+    cout << "Student name changed successfully\n";
     db.save();
 }
 void changeStudentSurname(Menu &currMenu, DataBase &db)
@@ -323,7 +354,7 @@ void changeStudentSurname(Menu &currMenu, DataBase &db)
         id = db.currentUserId;
         cout << id << endl;
     }
-    cout << "Enter new name(whithout ','): ";
+    cout << "Enter new surname(whithout ','): ";
     cin >> surname;
 
     if (surname.find(',') != string::npos)
@@ -333,6 +364,7 @@ void changeStudentSurname(Menu &currMenu, DataBase &db)
     }
 
     db.changeStudentSurname(id, surname);
+    cout << "Student surname changed successfully\n";
     db.save();
 }
 
@@ -342,7 +374,7 @@ void changeStudentAccount(Menu &currMenu, DataBase &db)
     int id;
     cout << "Enter student id: ";
     cin >> id;
-
+    db.showAllUsers();
     cout << "Enter account name(whithout ','): ";
     cin >> login;
 
@@ -351,8 +383,15 @@ void changeStudentAccount(Menu &currMenu, DataBase &db)
         cout << "Reenter login without ','\n";
         return;
     }
+    if (!db.findUserByLogin(login))
+    {
+        cout << "User with this login not exists.\n";
+        return;
+    }
+    
 
     db.changeStudentAccountId(id, login);
+    cout << "Student user account changed successfully\n";
     db.save();
 }
 void removeStudent(Menu &currMenu, DataBase &db)
@@ -362,6 +401,7 @@ void removeStudent(Menu &currMenu, DataBase &db)
     cin >> id;
 
     db.removeStudent(id);
+    cout << "Student removed successfully\n";
     db.save();
 }
 
@@ -419,6 +459,7 @@ void manageStudent(Menu &currMenu, DataBase &db)
         }
         else
         {
+            db.getStudentByUserId(db.currentUserId).print();
             cout << "1. Change student name\n";
             cout << "2. Change student surname\n";
             cout << "3. Back\n";
@@ -442,7 +483,7 @@ void manageStudent(Menu &currMenu, DataBase &db)
             changeStudentName(currMenu, db);
             return;
         case 2:
-            changeStudentName(currMenu, db);
+            changeStudentSurname(currMenu, db);
             return;
         case 3:
         case -3:
@@ -470,6 +511,7 @@ void createGroup(Menu &currMenu, DataBase &db)
     }
 
     db.createGroup(name);
+    cout << "Group created successfully\n";
     currMenu = Menu::ManageGroup;
     db.save();
 }
@@ -482,6 +524,7 @@ void addStudentToCurrGroup(Menu &currMenu, DataBase &db)
     cin >> id;
 
     db.addStudentToCurrGroup(id);
+    cout << "Student successfully added to current group\n";
     db.save();
 }
 void removeStudentFromCurrGroup(Menu &currMenu, DataBase &db)
@@ -491,6 +534,7 @@ void removeStudentFromCurrGroup(Menu &currMenu, DataBase &db)
     cin >> id;
 
     db.removeStudentFromCurrGroup(id);
+    cout << "Student successfully removed from current group\n";
     db.save();
 }
 
@@ -536,19 +580,30 @@ void addSubjectToCurrGroup(Menu &currMenu, DataBase &db)
     cin >> id;
 
     db.addSubjectToCurrGroup(id);
+    cout << "Subject successfully added to current group\n";
     db.save();
 }
 void setSubjectCoeffivient(Menu &currMenu, DataBase &db)
 {
     db.showGroupSubjects(db.currentGroupId);
     int id;
-    double coefficient;
+    string coefficient;
     cout << "Enter subject id: ";
     cin >> id;
     cout << "Enter subject coefficient(use '.' to split): ";
     cin >> coefficient;
 
-    db.setSubjectCoefficient(id, coefficient);
+    try{
+        double coef = stod(coefficient);
+    }
+    catch(exception ex){
+        cout << "Wrong input.";
+        return;
+    }
+    auto coeffici = stod(coefficient);
+
+    db.setSubjectCoefficient(id, coeffici);
+    cout << "Subject coefficient set successfully\n";
     db.save();
 }
 void removeSubjectFromCurrGroup(Menu &currMenu, DataBase &db)
@@ -559,6 +614,7 @@ void removeSubjectFromCurrGroup(Menu &currMenu, DataBase &db)
     cin >> id;
 
     db.removeSubjectFromCurrGroup(id);
+    cout << "Subject successfully removed from current group\n";
     db.save();
 }
 
@@ -609,10 +665,11 @@ void setStudentMarkInGroup(Menu &currMenu, DataBase &db)
     db.showGroupSubjects(db.currentGroupId);
     cout << "Enter subject id: ";
     cin >> subjectId;
-    cout << "Enter student mark:";
+    cout << "Enter student mark: ";
     cin >> mark;
 
     db.setStudentMark(studentId, subjectId, mark);
+    cout << "Mark successfully set\n";
     db.save();
 }
 void changeGroupName(Menu &currMenu, DataBase &db)
@@ -631,6 +688,7 @@ void changeGroupName(Menu &currMenu, DataBase &db)
     }
 
     db.changeGroupName(id, name);
+    cout << "Group name changed successfully\n";
     db.save();
 }
 void removeGroup(Menu &currMenu, DataBase &db)
@@ -650,6 +708,10 @@ void removeGroup(Menu &currMenu, DataBase &db)
     if (answer == "yes")
     {
         db.removeCurrGroup();
+        cout << "Current group removed successfully\n";
+    }
+    else{
+    cout << "Group not removed\n";
     }
     currMenu = Menu::ManageGroup;
     db.save();
@@ -660,15 +722,18 @@ void editGroup(Menu &currMenu, DataBase &db)
     while (true)
     {
         string groupName;
+        if(db.currentGroupId == -1){
+        db.showAllGroups();
         cout << "Enter group name: ";
         cin >> groupName;
-        if (db.getGroupByName(groupName).id == -1)
+        db.currentGroupId = db.getGroupByName(groupName).id;
+        }
+        if (db.currentGroupId == -1)
         {
             cout << "Group with this name is not exists.\n";
             currMenu = Menu::Main;
             return;
         }
-        db.currentGroupId = db.getGroupByName(groupName).id;
 
         cout << "1. Change group name\n";
         cout << "2. Edit group students\n";
@@ -687,19 +752,19 @@ void editGroup(Menu &currMenu, DataBase &db)
         {
         case -1:
             changeGroupName(currMenu, db);
-            return;
+            break;
         case -2:
             editStudentInGroup(currMenu, db);
-            return;
+            break;
         case -3:
             editSubjectInGroup(currMenu, db);
-            return;
+            break;
         case -4:
             setStudentMarkInGroup(currMenu, db);
-            return;
+            break;
         case -5:
             removeGroup(currMenu, db);
-            return;
+            break;
         case -6:
             currMenu = Menu::ManageGroup;
             db.currentGroupId = -1;
@@ -758,7 +823,7 @@ void createSubject(Menu &currMenu, DataBase &db)
     }
 
     db.createSubject(name);
-    currMenu = Menu::Main;
+    cout << "Subject created successfully\n";
     db.save();
 }
 void changeSubjectName(Menu &currMenu, DataBase &db)
@@ -776,7 +841,7 @@ void changeSubjectName(Menu &currMenu, DataBase &db)
     }
 
     db.changeSubjectName(oldname, newname);
-    currMenu = Menu::Main;
+    cout << "Subject name changed successfully\n";
     db.save();
 }
 void removeSubject(Menu &currMenu, DataBase &db)
@@ -792,7 +857,7 @@ void removeSubject(Menu &currMenu, DataBase &db)
     }
 
     db.removeSubject(name);
-    currMenu = Menu::Main;
+    cout << "Subject removed successfully\n";
     db.save();
 }
 
@@ -800,6 +865,7 @@ void manageSubject(Menu &currMenu, DataBase &db)
 {
     while (true)
     {
+        db.showAllSubjects();
         cout << "1. Create new subject\n";
         cout << "2. Change subject name\n";
         cout << "3. Remove subject\n";
@@ -837,6 +903,10 @@ void manageSubject(Menu &currMenu, DataBase &db)
 void showAllStudents(Menu &currMenu, DataBase &db)
 {
     db.showAllStudents();
+}
+void showAllUsers(Menu &currMenu, DataBase &db)
+{
+    db.showAllUsers();
 }
 void showAllSubjects(Menu &currMenu, DataBase &db)
 {
@@ -899,12 +969,13 @@ void showTables(Menu &currMenu, DataBase &db)
     {
         if (db.getUser().isAdmin)
         {
-            cout << "1. Show all students\n";
-            cout << "2. Show all subjects\n";
-            cout << "3. Show group students\n";
-            cout << "4. Show group subjects\n";
-            cout << "5. Show group students marks\n";
-            cout << "6. Back\n";
+            cout << "1. Show all users\n";
+            cout << "2. Show all students\n";
+            cout << "3. Show all subjects\n";
+            cout << "4. Show group students\n";
+            cout << "5. Show group subjects\n";
+            cout << "6. Show group students marks\n";
+            cout << "7. Back\n";
         }
         else
         {
@@ -921,26 +992,29 @@ void showTables(Menu &currMenu, DataBase &db)
 
         switch (inp)
         {
-        case -1:
-            showAllStudents(currMenu, db);
+            case -1:
+            showAllUsers(currMenu,db);
             return;
         case -2:
+            showAllStudents(currMenu, db);
+            return;
+        case -3:
             showAllSubjects(currMenu, db);
             return;
         case 1:
-        case -3:
+        case -4:
             showGroupStudents(currMenu, db);
             return;
         case 2:
-        case -4:
+        case -5:
             showGroupSubjects(currMenu, db);
             return;
         case 3:
-        case -5:
+        case -6:
             showGroupStudentsMarks(currMenu, db);
             return;
         case 4:
-        case -6:
+        case -7:
             currMenu = Menu::Main;
             return;
         default:

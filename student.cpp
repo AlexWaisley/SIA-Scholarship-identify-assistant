@@ -20,7 +20,7 @@ struct Student
 
     void print()
     {
-        cout << "Id: " << id << ".\tName: " << name << ".\tSurname: " << surname << ".\tUser id: " << accountId << endl;
+        cout << "Id: " << id << ".\tSurname: " << surname << ".\tName: " << name << ".\tUser id: " << accountId << endl;
     }
 
     void save(ofstream &file)

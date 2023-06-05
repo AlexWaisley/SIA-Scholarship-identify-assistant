@@ -29,7 +29,7 @@ struct User
 
     void print()
     {
-        cout << id << ' ' << login << " " << password << ' ' << isAdmin << endl;
+        cout << "User id: " << id << ".\tUser login: " << login << ".\tIs user admin: " << isAdmin << endl;
     }
 
     bool equalData(const User &inpUser)

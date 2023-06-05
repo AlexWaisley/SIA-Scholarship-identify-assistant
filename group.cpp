@@ -10,8 +10,8 @@ struct Group
 {
     int id;
     string name;
-    vector<int> students;/*<student id>*/
-    vector<int> subjects;/*<subject id>*/
+    vector<int> students;          /*<student id>*/
+    vector<int> subjects;          /*<subject id>*/
     map<int, double> coefficients; /*<subject id, coefficient>*/
     map<int, map<int, int>> marks; /*<student id, <subject id, mark>>*/
 
@@ -21,7 +21,7 @@ struct Group
         name = _name;
     }
 
-    Group(int _id, string _name, vector<int> _students, vector<int> _subjects, map<int, double> _coefficients, map<int, map<int, int>>& _marks)
+    Group(int _id, string _name, vector<int> _students, vector<int> _subjects, map<int, double> _coefficients, map<int, map<int, int>> &_marks)
     {
         id = _id;
         name = _name;
@@ -31,34 +31,44 @@ struct Group
         marks = (_marks);
     }
 
-    void calculateTotalMarks()
-{
-    auto group = *this;
-    for (int studentId : group.students)
+    vector<pair<int, int>> calculateTotalMarks()
     {
-        int totalMarks = 0;
-
-        for (int subjectId : group.subjects)
+        auto group = *this;
+        map<int, double> mark;
+        for (int studentId : group.students)
         {
-            if (group.marks.find(studentId) != group.marks.end())
+            double totalMarks = 0;
+
+            for (int subjectId : group.subjects)
             {
-                const auto& studentMarks = group.marks.at(studentId);
-                if (studentMarks.find(subjectId) != studentMarks.end())
+                if (group.marks.find(studentId) != group.marks.end())
                 {
-                    int mark = studentMarks.at(subjectId);
-                    double coefficient = group.coefficients.at(subjectId);
-                    totalMarks += mark * coefficient;
+                    const auto &studentMarks = group.marks.at(studentId);
+                    if (studentMarks.find(subjectId) != studentMarks.end())
+                    {
+                        int mark = studentMarks.at(subjectId);
+                        double coefficient = group.coefficients.at(subjectId);
+                        totalMarks += mark * coefficient;
+                    }
                 }
             }
+            mark.insert({studentId, totalMarks});
         }
+        vector<pair<int, int>> vec(mark.begin(), mark.end());
 
-        cout << "Student ID: " << studentId << ", Total Marks: " << totalMarks << endl;
+        sort(vec.begin(), vec.end(), compareByValue);
+        
+        return vec;
     }
-}
+
+    static bool compareByValue(const pair<int, int> &a, const pair<int, int> &b)
+    {
+        return a.second > b.second;
+    }
 
     void print()
     {
-        cout << id << ' ' << name << endl;
+        cout << "Group id: " << id << ".\tGroup name: " << name << endl;
     }
 
     void save(ostream &file)

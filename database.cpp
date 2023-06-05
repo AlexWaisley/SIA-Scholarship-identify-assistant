@@ -28,7 +28,12 @@ struct DataBase
     void showGroupStudentsWithMarks(int groupId)
     {
         auto group = getGroupById(groupId);
-        group.calculateTotalMarks();
+        auto mark = group.calculateTotalMarks();
+        for (auto sudent : mark)
+        {
+            auto stud = getStudentById(sudent.first);
+            cout << "Id: " << stud.id << ".\tName: " << stud.name << ".\tSurname: " << stud.surname << ".\tTotal Mark: " << sudent.second << endl;
+        }
     }
     void showAllGroups()
     {
@@ -44,6 +49,7 @@ struct DataBase
     }
     void showAllStudents()
     {
+        sort(students.begin(),students.end(),compareBySurname);
         if (students.size() == 0)
         {
             cout << "Students not added yet.\n";
@@ -87,6 +93,20 @@ struct DataBase
             cout << "Group has no students\n";
             return;
         }
+        for (int i = 0; i < group.students.size() - 1; ++i) {
+        bool swapped = false;
+
+        for (int j = 0; j < group.students.size() - i - 1; ++j) {
+            if (getStudentById( group.students[j]).surname > getStudentById( group.students[j + 1]).surname) {
+                swap(group.students[j], group.students[j + 1]);
+                swapped = true;
+            }
+        }
+
+        if (!swapped) {
+            break;
+        }
+    }
 
         for (int i = 0; i < group.students.size(); i++)
         {
@@ -121,6 +141,12 @@ struct DataBase
                 cout << "Subject with id: " << group.subjects[i] << " is not exists.\n";
             }
         }
+    }
+    static bool compareBySurname(const Student& a, const Student& b) {
+    return a.surname < b.surname;
+    }
+    static bool comparewStudentIdBySurname(pair<int,Student> a,pair<int,Student> b) {
+    return a.second.surname < b.second.surname;
     }
 
     void setGroupId(int userid)
@@ -582,7 +608,7 @@ struct DataBase
                 map<int, int> studentsmarks;
                 for (int k = 0; k < studentsMarksSize; k++)
                 {
-                    studentsmarks.insert({stoi(data[i + n + 3 + k]), stod(data[i + n + 4 + k])});
+                    studentsmarks.insert({stoi(data[i + n + 3 + k*2]), stod(data[i + n + 4 + k*2])});
                 }
 
                 if (studentsMarksSize == 1 && studentsmarks.count(-1) > 0)
